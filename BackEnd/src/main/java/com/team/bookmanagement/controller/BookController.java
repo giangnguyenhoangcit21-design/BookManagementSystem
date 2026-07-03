@@ -43,7 +43,8 @@ public class BookController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<?> updateBook(@PathVariable Long id, @RequestBody BookRequest bookRequest, Principal principal) {
+    public ResponseEntity<?> updateBook(@PathVariable Long id, @RequestBody BookRequest bookRequest,
+            Principal principal) {
         try {
             BookResponse book = bookService.updateBook(id, bookRequest, principal.getName());
             return ResponseEntity.ok(book);
