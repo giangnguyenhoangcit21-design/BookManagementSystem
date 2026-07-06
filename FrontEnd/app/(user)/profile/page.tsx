@@ -1,14 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { api, Book, BorrowRequest } from "@/lib/api";
+import { api, Book, BorrowRecordResponse } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
 export default function ProfilePage() {
   const { user } = useAuth();
-  const [borrows, setBorrows] = useState<BorrowRequest[]>([]);
+  const [borrows, setBorrows] = useState<BorrowRecordResponse[]>([]);
   const [favorites, setFavorites] = useState<Book[]>([]);
   const [loading, setLoading] = useState(true);
   const [booksDict, setBooksDict] = useState<Record<string, Book>>({});
@@ -18,7 +18,7 @@ export default function ProfilePage() {
     if (!user) return;
     try {
       const [borrowsData, favData, allBooks] = await Promise.all([
-        api.getUserBorrows(user.id),
+        api.getUserBorrows(),
         api.getFavorites(user.id),
         api.getBooks()
       ]);
@@ -39,19 +39,7 @@ export default function ProfilePage() {
     fetchData();
   }, [user]);
 
-  const handleCancel = async (borrowId: string) => {
-    if(confirm("Bạn có chắc chắn muốn hủy yêu cầu này?")) {
-      await api.cancelBorrow(borrowId);
-      fetchData();
-    }
-  };
 
-  const handleReturn = async (borrowId: string) => {
-    if(confirm("Xác nhận trả sách?")) {
-      await api.returnBook(borrowId);
-      fetchData();
-    }
-  };
 
   if (!user) return <div className="py-20 text-center">Vui lòng đăng nhập</div>;
   if (loading) return <div className="py-20 text-center">Đang tải...</div>;
@@ -95,24 +83,16 @@ export default function ProfilePage() {
                     if (!book) return null;
                     return (
                       <div key={borrow.id} className="flex flex-col sm:flex-row gap-4 p-4 rounded-xl border border-zinc-100 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900/50">
-                        <img src={book.coverImage} alt={book.title} className="w-16 h-24 object-cover rounded-md" />
+                        <img src={book.coverImage} alt={borrow.bookTitle} className="w-16 h-24 object-cover rounded-md" />
                         <div className="flex-1">
-                          <h4 className="font-semibold text-lg">{book.title}</h4>
-                          <p className="text-sm text-zinc-500">Ngày yêu cầu: {new Date(borrow.borrowDate).toLocaleDateString()}</p>
+                          <h4 className="font-semibold text-lg">{borrow.bookTitle}</h4>
+                          <p className="text-sm text-zinc-500">Ngày yêu cầu: {new Date(borrow.requestDate || borrow.borrowDate).toLocaleDateString()}</p>
                           <div className="mt-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300">
-                            {borrow.status === 'pending' && 'Đang chờ duyệt'}
-                            {borrow.status === 'approved' && 'Đang mượn'}
-                            {borrow.status === 'returned' && 'Đã trả'}
-                            {borrow.status === 'cancelled' && 'Đã hủy'}
+                            {borrow.status === 'PENDING' && 'Đang chờ duyệt'}
+                            {borrow.status === 'APPROVED' && 'Đang mượn'}
+                            {borrow.status === 'RETURNED' && 'Đã trả'}
+                            {borrow.status === 'REJECTED' && 'Đã bị từ chối'}
                           </div>
-                        </div>
-                        <div className="flex flex-col gap-2 justify-center">
-                          {borrow.status === 'pending' && (
-                            <Button variant="danger" size="sm" onClick={() => handleCancel(borrow.id)}>Hủy yêu cầu</Button>
-                          )}
-                          {borrow.status === 'approved' && (
-                            <Button variant="outline" size="sm" onClick={() => handleReturn(borrow.id)}>Trả sách</Button>
-                          )}
                         </div>
                       </div>
                     )
