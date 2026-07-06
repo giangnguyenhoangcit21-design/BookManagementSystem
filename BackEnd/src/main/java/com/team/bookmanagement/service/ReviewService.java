@@ -1,12 +1,12 @@
 package com.team.bookmanagement.service;
 
-import com.team.bookmanagement.model.dto.ReviewRequestDTO;
-import com.team.bookmanagement.model.dto.ReviewResponseDTO;
+import com.team.bookmanagement.model.dto.request.ReviewCreateRequest;
+import com.team.bookmanagement.model.dto.response.ReviewResponse;
 
 import java.util.List;
 
 public interface ReviewService {
-    ReviewResponseDTO addReview(String username, ReviewRequestDTO request);
-    List<ReviewResponseDTO> getReviewsByBookId(Long bookId);
-    Double getAverageRating(Long bookId);
+    ReviewResponse addReview(ReviewCreateRequest request, String username);
+    List<ReviewResponse> getReviewsByBookId(Long bookId);
+    Double getAverageRatingByBookId(Long bookId);
 }

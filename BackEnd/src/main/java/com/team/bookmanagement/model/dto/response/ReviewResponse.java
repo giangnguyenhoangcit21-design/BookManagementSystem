@@ -1,4 +1,4 @@
-package com.team.bookmanagement.model.dto;
+package com.team.bookmanagement.model.dto.response;
 
 import lombok.Builder;
 import lombok.Data;
@@ -6,7 +6,7 @@ import java.time.LocalDateTime;
 
 @Data
 @Builder
-public class ReviewResponseDTO {
+public class ReviewResponse {
     private Long id;
     private Long bookId;
     private String username;
