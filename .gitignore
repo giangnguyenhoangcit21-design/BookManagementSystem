@@ -1,0 +1,53 @@
+# ==========================================
+# IDE & System Files
+# ==========================================
+.vscode/
+.idea/
+*.iml
+*.ipr
+*.iws
+.settings/
+.project
+.classpath
+.factorypath
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+.DS_Store
+*.log
+*.tmp
+
+# ==========================================
+# Backend (Java / Maven)
+# ==========================================
+**/target/
+**/*.class
+**/pom.xml.tag
+**/pom.xml.releaseBackup
+**/pom.xml.next
+**/release.properties
+**/dependency-reduced-pom.xml
+**/.flattened-pom.xml
+**/classworlds.conf
+
+# ==========================================
+# Frontend (Next.js / Node)
+# ==========================================
+**/node_modules/
+**/.next/
+**/out/
+**/build/
+**/.npm/
+**/.eslintcache
+**/.env*.local
+**/npm-debug.log*
+**/yarn-debug.log*
+**/yarn-error.log*
+**/pnpm-debug.log*
+
+# ==========================================
+# Testing & Database
+# ==========================================
+**/*.db
+**/*.log
+bin/
