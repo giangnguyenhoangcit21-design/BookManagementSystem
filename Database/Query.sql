@@ -42,3 +42,18 @@ VALUES
 (N'Lập trình Spring Boot Căn Bản', N'Nguyễn Văn A', 150000.00, N'Sách hướng dẫn làm RESTful API cực dễ hiểu.', 1),
 (N'Clean Code (Mã Sạch)', N'Robert C. Martin', 250000.00, N'Sách gối đầu giường của mọi lập trình viên.', 2);
 GO
+
+CREATE TABLE borrow_records (
+    id BIGINT IDENTITY(1,1) PRIMARY KEY,
+    user_id BIGINT NOT NULL,
+    book_id BIGINT NOT NULL,
+    status NVARCHAR(50) NOT NULL, -- 'PENDING', 'APPROVED', 'REJECTED', 'RETURNED'
+    request_date DATETIME DEFAULT GETDATE(), -- Ngày gửi yêu cầu
+    borrow_date DATETIME NULL, -- Ngày Admin phê duyệt cho mượn
+    due_date DATETIME NULL,    -- Hạn cuối phải trả (Ví dụ: borrow_date + 14 ngày)
+    return_date DATETIME NULL, -- Ngày thực tế User trả sách
+    
+    -- Thiết lập khóa ngoại liên kết tới bảng users và books
+    CONSTRAINT FK_Borrow_User FOREIGN KEY (user_id) REFERENCES users(id),
+    CONSTRAINT FK_Borrow_Book FOREIGN KEY (book_id) REFERENCES books(id)
+);
