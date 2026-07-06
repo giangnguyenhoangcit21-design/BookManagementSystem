@@ -52,6 +52,10 @@ Client (FrontEnd Next.js)
    * Khi các tác vụ CRUD (Thêm, Đọc, Sửa, Xóa) sách được thực hiện, Service sẽ gọi xuống Repository (sử dụng Hibernate/Spring Data JPA) để ánh xạ trực tiếp thành các câu lệnh SQL tương tác với cơ sở dữ liệu SQL Server.
 4. **Cơ chế CORS**:
    * Vì Frontend (`http://localhost:3000`) khác cổng với Backend (`http://localhost:8080`), Backend đã được cấu hình CORS (`CorsConfigurationSource`) để cho phép cổng `3000` thực hiện đầy đủ các phương thức HTTP như `GET`, `POST`, `PUT`, `DELETE`, `OPTIONS`.
+5. **Quy trình Mượn/Trả Sách**:
+   * **Đăng ký mượn**: User gửi yêu cầu mượn sách qua `/api/borrows/request/{bookId}`. Hệ thống sẽ kiểm tra xem sách có đang ở trạng thái mượn (`APPROVED`) hoặc chờ duyệt (`PENDING`) hay không, nếu không sẽ lưu phiếu mượn ở trạng thái `PENDING`.
+   * **Duyệt mượn/trả**: Admin quản lý tất cả phiếu mượn qua `/api/borrows/all`. Admin có quyền phê duyệt (`/approve`), từ chối (`/reject`), hoặc xác nhận trả sách (`/return`). Khi duyệt mượn, `due_date` tự động được tính (mặc định sau 14 ngày).
+   * **Tính hạn trả**: Backend tự động tính toán số ngày mượn còn lại (`daysRemaining`) và trạng thái quá hạn (`isOverdue`) để trả về cho Frontend hiển thị.
 
 ---
 
@@ -61,19 +65,23 @@ Client (FrontEnd Next.js)
 * **`controller/`**: Điểm tiếp nhận request từ Client.
   * `AuthController.java`: Xử lý đăng ký (`/register`) và đăng nhập (`/login`).
   * `BookController.java`: Cung cấp các API CRUD sách (`/api/books`).
+  * `BorrowController.java`: Quản lý yêu cầu mượn/trả sách, duyệt/từ chối yêu cầu của người dùng (`/api/borrows`).
 * **`service/`**: Xử lý logic nghiệp vụ và ràng buộc hệ thống.
   * `BookService.java` & `impl/BookServiceImpl.java`: Logic kiểm tra giá sách (phải >= 0), kiểm tra quyền sở hữu (User chỉ sửa được sách của mình, Admin sửa được mọi sách).
   * `AuthService.java` & `impl/AuthServiceImpl.java`: Logic mã hóa BCrypt, đăng ký người dùng mới và tạo xác thực.
+  * `BorrowService.java` & `impl/BorrowServiceImpl.java`: Logic nghiệp vụ xử lý quy trình mượn sách (kiểm tra trùng lặp, tính số ngày còn lại, tính ngày hết hạn).
 * **`repository/`**: Tầng giao tiếp với database.
   * `UserRepository.java`: Tìm kiếm User theo Username.
   * `BookRepository.java`: Thực hiện các truy vấn cơ bản về Sách.
+  * `BorrowRecordRepository.java`: Thực hiện truy vấn thông tin mượn trả, kiểm tra sách đang mượn.
 * **`model/`**: Định nghĩa cấu trúc dữ liệu.
   * **`entity/`**: Ánh xạ trực tiếp thành các bảng trong SQL Server.
     * `User.java`: Mapped với bảng `users` (id, username, password, role).
     * `Book.java`: Mapped với bảng `books` (id, title, author, price, description, created_by).
+    * `BorrowRecord.java`: Mapped với bảng `borrow_records` (id, user_id, book_id, status, request_date, borrow_date, due_date, return_date).
   * **`dto/`**: Các đối tượng truyền nhận dữ liệu qua API để ẩn các thông tin nhạy cảm (như mật khẩu).
     * `request/`: `BookRequest`, `UserLoginRequest`, `UserRegisterRequest`.
-    * `response/`: `BookResponse`, `UserResponse`, `JwtResponse`.
+    * `response/`: `BookResponse`, `UserResponse`, `JwtResponse`, `BorrowRecordResponse`.
 * **`security/`**: Chứa toàn bộ cấu hình bảo mật JWT.
   * `WebSecurityConfig.java`: Thiết lập phân quyền các URL, tắt CSRF và cấu hình CORS.
   * `JwtTokenProvider.java`: Tạo sinh token JWT và phân tích giải mã token.
@@ -136,3 +144,9 @@ Client (FrontEnd Next.js)
 1. Truy cập `http://localhost:3000/register` để đăng ký tài khoản (ví dụ: Username: `testuser`, Mật khẩu: `123456`).
 2. Truy cập `http://localhost:3000/login` và nhập tài khoản vừa tạo.
 3. Sau khi đăng nhập thành công, bạn sẽ được đưa đến trang Dashboard (`http://localhost:3000/dashboard`). Lúc này Frontend sẽ tự động gửi kèm JWT Token để lấy dữ liệu từ database SQL Server và hiển thị danh sách sách trên giao diện.
+4. **Mượn sách**: Tại Dashboard, click nút "Yêu cầu mượn" trên cuốn sách bất kỳ. API `POST /api/borrows/request/{bookId}` sẽ được gửi đi để tạo phiếu mượn ở trạng thái `PENDING`.
+5. **Duyệt phiếu mượn (Quyền Admin)**: 
+   * Đăng nhập tài khoản Admin (tài khoản có role `ROLE_ADMIN`).
+   * Sử dụng API `GET /api/borrows/all` để lấy toàn bộ danh sách phiếu mượn.
+   * Gửi request `PUT /api/borrows/{id}/approve` để duyệt yêu cầu mượn của user (hạn trả mặc định 14 ngày được tự động áp dụng).
+   * Gửi request `PUT /api/borrows/{id}/return` khi user hoàn thành việc trả sách.
