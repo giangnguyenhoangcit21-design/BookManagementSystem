@@ -18,6 +18,12 @@ export function Navbar() {
       <div className="flex items-center gap-4">
         {user ? (
           <>
+            <Link href="/borrows">
+              <Button variant="ghost" className="flex gap-2">
+                <BookOpen className="w-4 h-4" />
+                <span className="hidden sm:inline">Lịch sử mượn</span>
+              </Button>
+            </Link>
             <Link href="/profile">
               <Button variant="ghost" className="flex gap-2">
                 <User className="w-4 h-4" />

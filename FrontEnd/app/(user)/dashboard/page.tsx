@@ -36,10 +36,10 @@ export default function DashboardPage() {
   const handleBorrow = async (bookId: string) => {
     if (!user) return alert("Vui lòng đăng nhập!");
     try {
-      await api.borrowBook(user.id, bookId);
+      await api.borrowBook(bookId);
       alert("Đã gửi yêu cầu mượn sách!");
-    } catch (err) {
-      alert("Có lỗi xảy ra.");
+    } catch (err: any) {
+      alert(err.message || "Có lỗi xảy ra.");
     }
   };
 
