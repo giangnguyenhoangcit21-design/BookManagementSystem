@@ -23,9 +23,24 @@ export interface BorrowRequest {
   id: string;
   bookId: string;
   userId: string;
-  status: 'pending' | 'approved' | 'returned' | 'cancelled';
+  status: string;
   borrowDate: string;
   returnDate?: string;
+}
+
+export interface BorrowRecordResponse {
+  id: number;
+  userId: number;
+  username: string;
+  bookId: number;
+  bookTitle: string;
+  status: string;
+  requestDate: string;
+  borrowDate: string;
+  dueDate: string;
+  returnDate: string;
+  daysRemaining: number;
+  isOverdue: boolean;
 }
 
 // -------------------------
@@ -116,7 +131,7 @@ export const api = {
     }));
   },
   
-  createBook: async (book: Omit<Book, 'id'>): Promise<Book> => {
+  createBook: async (book: Omit<Book, 'id' | 'coverImage' | 'available'>): Promise<Book> => {
     const payload = {
       title: book.title,
       author: book.author,
@@ -133,7 +148,9 @@ export const api = {
     return {
       ...book,
       id: b.id.toString(),
-      price: b.price
+      price: b.price,
+      coverImage: 'https://images.unsplash.com/photo-1544947950-fa07a98d237f?q=80&w=600&auto=format&fit=crop',
+      available: true
     };
   },
   
@@ -182,28 +199,75 @@ export const api = {
     ];
   },
   
-  borrowBook: async (userId: string, bookId: string): Promise<BorrowRequest> => {
-    await new Promise(r => setTimeout(r, 300));
-    return {
-      id: Date.now().toString(),
-      userId,
-      bookId,
-      status: 'pending',
-      borrowDate: new Date().toISOString()
-    };
-  },
+  // -------------------------
+  // REAL API Borrows
+  // -------------------------
   
-  cancelBorrow: async (borrowId: string): Promise<void> => {
-    await new Promise(r => setTimeout(r, 300));
+  borrowBook: async (bookId: string): Promise<BorrowRecordResponse> => {
+    const res = await fetch(`${API_URL}/borrows/request/${bookId}`, {
+      method: 'POST',
+      headers: getHeaders()
+    });
+    if (!res.ok) {
+      const err = await res.text();
+      throw new Error(err || "Failed to borrow book");
+    }
+    return await res.json();
   },
 
-  returnBook: async (borrowId: string): Promise<void> => {
-    await new Promise(r => setTimeout(r, 300));
+  getUserBorrows: async (): Promise<BorrowRecordResponse[]> => {
+    const res = await fetch(`${API_URL}/borrows/my`, {
+      method: 'GET',
+      headers: getHeaders()
+    });
+    if (!res.ok) throw new Error("Failed to fetch user borrows");
+    return await res.json();
   },
 
-  getUserBorrows: async (userId: string): Promise<BorrowRequest[]> => {
-    await new Promise(r => setTimeout(r, 300));
-    return []; // Return empty for mock
+  getAllBorrows: async (): Promise<BorrowRecordResponse[]> => {
+    const res = await fetch(`${API_URL}/borrows/all`, {
+      method: 'GET',
+      headers: getHeaders()
+    });
+    if (!res.ok) throw new Error("Failed to fetch all borrows");
+    return await res.json();
+  },
+
+  approveBorrow: async (id: string, durationDays?: number): Promise<BorrowRecordResponse> => {
+    const url = durationDays ? `${API_URL}/borrows/${id}/approve?durationDays=${durationDays}` : `${API_URL}/borrows/${id}/approve`;
+    const res = await fetch(url, {
+      method: 'PUT',
+      headers: getHeaders()
+    });
+    if (!res.ok) {
+        const err = await res.text();
+        throw new Error(err || "Failed to approve borrow");
+    }
+    return await res.json();
+  },
+
+  rejectBorrow: async (id: string): Promise<BorrowRecordResponse> => {
+    const res = await fetch(`${API_URL}/borrows/${id}/reject`, {
+      method: 'PUT',
+      headers: getHeaders()
+    });
+    if (!res.ok) {
+        const err = await res.text();
+        throw new Error(err || "Failed to reject borrow");
+    }
+    return await res.json();
+  },
+
+  returnBook: async (id: string): Promise<BorrowRecordResponse> => {
+    const res = await fetch(`${API_URL}/borrows/${id}/return`, {
+      method: 'PUT',
+      headers: getHeaders()
+    });
+    if (!res.ok) {
+        const err = await res.text();
+        throw new Error(err || "Failed to return book");
+    }
+    return await res.json();
   },
 
   getFavorites: async (userId: string): Promise<Book[]> => {

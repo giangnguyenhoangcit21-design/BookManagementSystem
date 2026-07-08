@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 
 interface AuthContextType {
   user: User | null;
-  login: (email: string) => Promise<void>;
+  login: (username: string, password?: string) => Promise<void>;
   logout: () => void;
   isLoading: boolean;
 }
@@ -30,10 +30,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setIsLoading(false);
   }, []);
 
-  const login = async (email: string) => {
+  const login = async (username: string, password?: string) => {
     setIsLoading(true);
     try {
-      const u = await api.login(email);
+      const u = await api.login(username, password);
       setUser(u);
       localStorage.setItem('mock_user', JSON.stringify(u));
       if (u.role === 'admin') {
