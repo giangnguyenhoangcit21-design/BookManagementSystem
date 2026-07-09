@@ -160,3 +160,11 @@ Client (FrontEnd Next.js)
    * **Thêm đánh giá**: Người dùng đã đăng nhập có thể gửi đánh giá thông qua `POST /api/reviews` với Body JSON (chứa `bookId`, `rating` từ 1-5, và `comment`).
    * **Xem đánh giá**: Bất kỳ ai cũng có thể truy cập `GET /api/reviews/book/{bookId}` để xem danh sách bình luận mới nhất của một cuốn sách.
    * **Xem điểm trung bình**: Lấy điểm đánh giá trung bình của sách bằng API `GET /api/reviews/book/{bookId}/average`.
+   * **Quản lý (Admin)**: Admin có thể xem toàn bộ đánh giá qua `GET /api/reviews/all` và xóa các bình luận rác qua `DELETE /api/reviews/{id}`. Frontend đã có giao diện Bảng quản lý dành riêng cho tính năng này.
+
+## 6. Các Tối Ưu Hóa (Optimizations)
+
+Dự án đã được tối ưu hóa sâu ở tầng Backend để đạt hiệu suất và cấu trúc tốt hơn:
+- **Phân trang (Pagination)**: API lấy danh sách sách đã hỗ trợ phân trang, tránh load quá nhiều dữ liệu cùng lúc.
+- **Lọc theo danh mục (Category Filter)**: Bổ sung khả năng tìm kiếm và lọc sách theo Category để trải nghiệm người dùng mượt mà hơn.
+- **Tính toán bằng công thức (Formulas)**: Ứng dụng các công thức tính toán tự động trong Database và Entity để giảm tải cho Controller.
