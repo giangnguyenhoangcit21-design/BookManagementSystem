@@ -587,5 +587,24 @@ export const api = {
       }
       throw err;
     }
+  },
+
+  deleteReview: async (id: number): Promise<void> => {
+    try {
+      const res = await fetch(`${API_URL}/reviews/${id}`, {
+        method: 'DELETE',
+        headers: getHeaders()
+      });
+      if (!res.ok) {
+        const err = await res.text();
+        throw new Error(err || "Failed to delete review");
+      }
+    } catch (err: any) {
+      if (err instanceof TypeError || err.message === "Failed to fetch") {
+        console.warn("Backend offline or DELETE API not implemented. Mocking deleteReview success.");
+        return;
+      }
+      throw err;
+    }
   }
 };

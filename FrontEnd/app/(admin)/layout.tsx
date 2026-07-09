@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Users, BookOpen, LogOut, LayoutDashboard, FileText } from "lucide-react";
+import { Users, BookOpen, LogOut, LayoutDashboard, FileText, Star } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/button";
 
@@ -18,6 +18,7 @@ export default function AdminLayout({
     { href: "/admin/users", label: "Quản lý Người dùng", icon: Users },
     { href: "/admin/books", label: "Quản lý Sách", icon: BookOpen },
     { href: "/admin/borrows", label: "Quản lý Mượn Sách", icon: FileText },
+    { href: "/admin/reviews", label: "Quản lý Đánh giá", icon: Star },
   ];
 
   if (!user || user.role !== 'admin') {

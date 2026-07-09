@@ -89,3 +89,5 @@ Cung cấp một endpoint công khai để Frontend lấy danh sách tất cả 
   }
   ```
   *(Map chứa khóa là `bookId` và giá trị là trạng thái mượn hiện tại như `PENDING` hoặc `APPROVED`)*
+
+
