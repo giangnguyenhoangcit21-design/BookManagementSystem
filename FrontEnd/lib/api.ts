@@ -43,6 +43,15 @@ export interface BorrowRecordResponse {
   isOverdue: boolean;
 }
 
+export interface ReviewResponse {
+  id: number;
+  bookId: number;
+  username: string;
+  rating: number;
+  comment: string;
+  createdAt: string;
+}
+
 // -------------------------
 // REAL API (Connected to Backend)
 // -------------------------
@@ -463,5 +472,107 @@ export const api = {
 
   toggleFavorite: async (userId: string, bookId: string): Promise<void> => {
     await new Promise(r => setTimeout(r, 300));
+  },
+
+  addReview: async (bookId: number, rating: number, comment: string): Promise<ReviewResponse> => {
+    try {
+      const res = await fetch(`${API_URL}/reviews`, {
+        method: 'POST',
+        headers: getHeaders(),
+        body: JSON.stringify({ bookId, rating, comment })
+      });
+      if (!res.ok) {
+        const err = await res.text();
+        throw new Error(err || "Failed to add review");
+      }
+      return await res.json();
+    } catch (err: any) {
+      if (err instanceof TypeError || err.message === "Failed to fetch") {
+        console.warn("Backend offline. Mocking addReview.");
+        const userStr = localStorage.getItem('mock_user');
+        let username = "dev_sinh_vien";
+        if (userStr) {
+          try {
+            username = JSON.parse(userStr).name || "dev_sinh_vien";
+          } catch (e) {}
+        }
+        return {
+          id: Math.floor(Math.random() * 1000 + 1),
+          bookId,
+          username,
+          rating,
+          comment,
+          createdAt: new Date().toISOString()
+        };
+      }
+      throw err;
+    }
+  },
+
+  getReviews: async (bookId: number): Promise<ReviewResponse[]> => {
+    try {
+      const res = await fetch(`${API_URL}/reviews/book/${bookId}`, {
+        method: 'GET',
+        headers: getHeaders()
+      });
+      if (!res.ok) throw new Error("Failed to fetch reviews");
+      return await res.json();
+    } catch (err: any) {
+      if (err instanceof TypeError || err.message === "Failed to fetch") {
+        console.warn("Backend offline. Returning mock reviews.");
+        if (bookId === 1) {
+          return [
+            {
+              id: 101,
+              bookId: 1,
+              username: "admin_thay_giao",
+              rating: 5,
+              comment: "Sách viết rất hay, dễ hiểu cho người mới bắt đầu học Spring Boot!",
+              createdAt: "2026-07-09T10:00:00Z"
+            },
+            {
+              id: 102,
+              bookId: 1,
+              username: "dev_sinh_vien",
+              rating: 4,
+              comment: "Tài liệu chi tiết, các ví dụ rõ ràng và chạy được ngay.",
+              createdAt: "2026-07-09T11:30:00Z"
+            }
+          ];
+        } else if (bookId === 2) {
+          return [
+            {
+              id: 201,
+              bookId: 2,
+              username: "dev_sinh_vien",
+              rating: 5,
+              comment: "Sách gối đầu giường của mọi lập trình viên. Đọc đi đọc lại vẫn thấy thấm!",
+              createdAt: "2026-07-09T09:15:00Z"
+            }
+          ];
+        }
+        return [];
+      }
+      throw err;
+    }
+  },
+
+  getAverageRating: async (bookId: number): Promise<number | null> => {
+    try {
+      const res = await fetch(`${API_URL}/reviews/book/${bookId}/average`, {
+        method: 'GET',
+        headers: getHeaders()
+      });
+      if (!res.ok) throw new Error("Failed to fetch average rating");
+      return await res.json();
+    } catch (err: any) {
+      if (err instanceof TypeError || err.message === "Failed to fetch") {
+        console.warn("Backend offline. Returning mock average rating.");
+        if (bookId === 1) return 4.5;
+        if (bookId === 2) return 5.0;
+        return 0;
+      }
+      throw err;
+    }
   }
 };
