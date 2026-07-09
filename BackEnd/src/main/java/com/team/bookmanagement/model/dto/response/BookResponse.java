@@ -16,5 +16,8 @@ public class BookResponse {
     private String author;
     private BigDecimal price;
     private String description;
+    private String category;
+    private boolean available;
+    private Double averageRating;
     private UserResponse createdBy;
 }

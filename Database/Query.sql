@@ -20,6 +20,7 @@ CREATE TABLE books (
     author NVARCHAR(100) NOT NULL,
     price DECIMAL(10,2) NOT NULL CHECK (price >= 0), -- Ngăn chặn nhập giá âm
     description NVARCHAR(MAX),
+    category NVARCHAR(100),             -- Cột phân loại sách
     created_by BIGINT,                  -- Cột liên kết với bảng users
     
     -- Ràng buộc khóa ngoại: Cột created_by phải tham chiếu đến cột id của bảng users
@@ -37,10 +38,10 @@ GO
 -- Chèn sách mẫu
 -- Quyển 1 do admin tạo (created_by = 1)
 -- Quyển 2 do user tạo (created_by = 2)
-INSERT INTO books (title, author, price, description, created_by)
+INSERT INTO books (title, author, price, description, category, created_by)
 VALUES 
-(N'Lập trình Spring Boot Căn Bản', N'Nguyễn Văn A', 150000.00, N'Sách hướng dẫn làm RESTful API cực dễ hiểu.', 1),
-(N'Clean Code (Mã Sạch)', N'Robert C. Martin', 250000.00, N'Sách gối đầu giường của mọi lập trình viên.', 2);
+(N'Lập trình Spring Boot Căn Bản', N'Nguyễn Văn A', 150000.00, N'Sách hướng dẫn làm RESTful API cực dễ hiểu.', N'Lập trình', 1),
+(N'Clean Code (Mã Sạch)', N'Robert C. Martin', 250000.00, N'Sách gối đầu giường của mọi lập trình viên.', N'Lập trình', 2);
 GO
 
 CREATE TABLE borrow_records (

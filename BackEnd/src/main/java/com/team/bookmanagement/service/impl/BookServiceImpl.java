@@ -8,9 +8,13 @@ import com.team.bookmanagement.model.entity.User;
 import com.team.bookmanagement.repository.BookRepository;
 import com.team.bookmanagement.repository.UserRepository;
 import com.team.bookmanagement.service.BookService;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import jakarta.persistence.criteria.Predicate;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -23,11 +27,40 @@ public class BookServiceImpl implements BookService {
     @Autowired
     private UserRepository userRepository;
 
+    private Specification<Book> buildSpecification(String search, String category, Boolean availableOnly) {
+        return (root, query, criteriaBuilder) -> {
+            List<Predicate> predicates = new ArrayList<>();
+            
+            if (search != null && !search.trim().isEmpty()) {
+                String likePattern = "%" + search.trim() + "%";
+                predicates.add(criteriaBuilder.or(
+                    criteriaBuilder.like(root.get("title"), likePattern),
+                    criteriaBuilder.like(root.get("author"), likePattern)
+                ));
+            }
+            
+            if (category != null && !category.trim().isEmpty()) {
+                predicates.add(criteriaBuilder.equal(root.get("category"), category.trim()));
+            }
+            
+            if (availableOnly != null && availableOnly) {
+                predicates.add(criteriaBuilder.equal(root.get("availableInt"), 1));
+            }
+            
+            return criteriaBuilder.and(predicates.toArray(new Predicate[0]));
+        };
+    }
+
     @Override
-    public List<BookResponse> getAllBooks() {
-        return bookRepository.findAll().stream()
-                .map(this::convertToResponse)
-                .collect(Collectors.toList());
+    public Page<BookResponse> getAllBooks(String search, String category, Boolean availableOnly, Pageable pageable) {
+        Specification<Book> spec = buildSpecification(search, category, availableOnly);
+        Page<Book> books = bookRepository.findAll(spec, pageable);
+        return books.map(this::convertToResponse);
+    }
+
+    @Override
+    public List<String> getAllCategories() {
+        return bookRepository.findDistinctCategories();
     }
 
     @Override
@@ -52,6 +85,7 @@ public class BookServiceImpl implements BookService {
                 .author(request.getAuthor())
                 .price(request.getPrice())
                 .description(request.getDescription())
+                .category(request.getCategory())
                 .createdBy(currentUser)
                 .build();
 
@@ -84,6 +118,7 @@ public class BookServiceImpl implements BookService {
         book.setAuthor(request.getAuthor());
         book.setPrice(request.getPrice());
         book.setDescription(request.getDescription());
+        book.setCategory(request.getCategory());
 
         Book updatedBook = bookRepository.save(book);
         return convertToResponse(updatedBook);
@@ -124,6 +159,9 @@ public class BookServiceImpl implements BookService {
                 .author(book.getAuthor())
                 .price(book.getPrice())
                 .description(book.getDescription())
+                .category(book.getCategory())
+                .averageRating(book.getAverageRating())
+                .available(book.isAvailable())
                 .createdBy(creator)
                 .build();
     }

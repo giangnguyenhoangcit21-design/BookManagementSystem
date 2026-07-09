@@ -7,6 +7,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import java.security.Principal;
 import java.util.List;
+import java.util.Map;
 
 @CrossOrigin(origins = "*", maxAge = 3600)
 @RestController
@@ -24,6 +25,12 @@ public class BorrowController {
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
+    }
+
+    @GetMapping("/my/active-status")
+    public ResponseEntity<Map<Long, String>> getMyActiveBorrowStatus(Principal principal) {
+        Map<Long, String> statusMap = borrowService.getMyActiveBorrowStatus(principal.getName());
+        return ResponseEntity.ok(statusMap);
     }
 
     @GetMapping("/my")

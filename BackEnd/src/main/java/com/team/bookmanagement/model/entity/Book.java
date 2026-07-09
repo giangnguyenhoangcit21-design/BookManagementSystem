@@ -31,6 +31,19 @@ public class Book {
     @Column(columnDefinition = "NVARCHAR(MAX)")
     private String description;
 
+    @Column(length = 100)
+    private String category;
+
+    @org.hibernate.annotations.Formula("(SELECT COALESCE(AVG(CAST(r.rating AS FLOAT)), 0) FROM reviews r WHERE r.book_id = id)")
+    private Double averageRating;
+
+    @org.hibernate.annotations.Formula("(CASE WHEN EXISTS (SELECT 1 FROM borrow_records br WHERE br.book_id = id AND br.status IN ('PENDING', 'APPROVED')) THEN 0 ELSE 1 END)")
+    private Integer availableInt;
+
+    public boolean isAvailable() {
+        return availableInt != null && availableInt == 1;
+    }
+
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "created_by", referencedColumnName = "id")
     private User createdBy;

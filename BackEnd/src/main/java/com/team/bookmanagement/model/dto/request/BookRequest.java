@@ -13,4 +13,5 @@ public class BookRequest {
     private String author;
     private BigDecimal price;
     private String description;
+    private String category;
 }

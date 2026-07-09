@@ -14,6 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
@@ -60,6 +61,19 @@ public class BorrowServiceImpl implements BorrowService {
         return borrowRecordRepository.findByUserUsernameOrderByRequestDateDesc(username).stream()
                 .map(this::convertToResponse)
                 .collect(Collectors.toList());
+    }
+
+    @Override
+    public Map<Long, String> getMyActiveBorrowStatus(String username) {
+        List<BorrowRecord> activeRecords = borrowRecordRepository.findByUserUsernameAndStatusIn(
+                username, List.of("PENDING", "APPROVED"));
+        
+        return activeRecords.stream()
+                .collect(Collectors.toMap(
+                        record -> record.getBook().getId(),
+                        BorrowRecord::getStatus,
+                        (existing, replacement) -> existing
+                ));
     }
 
     @Override
