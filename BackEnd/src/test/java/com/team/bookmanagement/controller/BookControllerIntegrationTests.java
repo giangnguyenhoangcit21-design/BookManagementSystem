@@ -96,7 +96,7 @@ public class BookControllerIntegrationTests {
         @Order(4)
         public void testCreateBook() throws Exception {
                 BookRequest bookRequest = new BookRequest("Sách Test 1", "Tác Giả A", new BigDecimal("99000.00"),
-                                "Mô tả sách test");
+                                "Mô tả sách test", "IT");
 
                 MvcResult result = mockMvc.perform(post("/api/books")
                                 .header("Authorization", userToken)
@@ -125,7 +125,7 @@ public class BookControllerIntegrationTests {
         @Order(6)
         public void testUpdateBookByOwner() throws Exception {
                 BookRequest updateRequest = new BookRequest("Sách Test 1 Update", "Tác Giả A",
-                                new BigDecimal("120000.00"), "Mô tả sách test updated");
+                                new BigDecimal("120000.00"), "Mô tả sách test updated", "IT");
 
                 mockMvc.perform(put("/api/books/" + createdBookId)
                                 .header("Authorization", userToken)
@@ -157,7 +157,7 @@ public class BookControllerIntegrationTests {
 
                 // Try to update testuser's book with otheruser's token -> should fail
                 BookRequest updateRequest = new BookRequest("Sách Test 1 Update Bad", "Tác Giả A",
-                                new BigDecimal("120000.00"), "Should not work");
+                                new BigDecimal("120000.00"), "Should not work", "IT");
                 mockMvc.perform(put("/api/books/" + createdBookId)
                                 .header("Authorization", otherToken)
                                 .contentType(MediaType.APPLICATION_JSON)
@@ -169,7 +169,7 @@ public class BookControllerIntegrationTests {
         @Order(8)
         public void testUpdateBookByAdmin() throws Exception {
                 BookRequest updateRequest = new BookRequest("Sách Test 1 Update Admin", "Tác Giả A",
-                                new BigDecimal("130000.00"), "Updated by admin");
+                                new BigDecimal("130000.00"), "Updated by admin", "IT");
 
                 mockMvc.perform(put("/api/books/" + createdBookId)
                                 .header("Authorization", adminToken)
