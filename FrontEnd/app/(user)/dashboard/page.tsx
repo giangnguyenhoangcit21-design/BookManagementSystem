@@ -16,6 +16,14 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [avgRatings, setAvgRatings] = useState<Record<string, number>>({});
+  
+  // Advanced Filter & Sort State
+  const [activeCategory, setActiveCategory] = useState("Tất cả");
+  const [sortBy, setSortBy] = useState("newest");
+  const [availableOnly, setAvailableOnly] = useState(false);
+  const [favoritesOnly, setFavoritesOnly] = useState(false);
+  const [pageSize, setPageSize] = useState(8);
+  const [activeBorrows, setActiveBorrows] = useState<Record<string, string>>({});
 
   // Modal State
   const [selectedBook, setSelectedBook] = useState<Book | null>(null);
@@ -37,6 +45,22 @@ export default function DashboardPage() {
         ]);
         setBooks(booksData);
         setFavorites(favData.map(b => b.id));
+
+        // Fetch active borrows to display status badges
+        if (user) {
+          try {
+            const borrowsData = await api.getUserBorrows();
+            const activeMap: Record<string, string> = {};
+            borrowsData.forEach(record => {
+              if (record.status === 'PENDING' || record.status === 'APPROVED') {
+                activeMap[record.bookId.toString()] = record.status;
+              }
+            });
+            setActiveBorrows(activeMap);
+          } catch (e) {
+            console.error("Error fetching user borrows for badges", e);
+          }
+        }
 
         // Fetch average ratings for all books
         const ratingsMap: Record<string, number> = {};
@@ -65,6 +89,12 @@ export default function DashboardPage() {
     try {
       await api.borrowBook(bookId);
       alert("Đã gửi yêu cầu mượn sách!");
+      
+      // Update active borrows map immediately
+      setActiveBorrows(prev => ({
+        ...prev,
+        [bookId]: 'PENDING'
+      }));
     } catch (err: any) {
       alert(err.message || "Có lỗi xảy ra.");
     }
@@ -132,12 +162,54 @@ export default function DashboardPage() {
     }
   };
 
-  const filteredBooks = books.filter(b => b.title.toLowerCase().includes(searchTerm.toLowerCase()));
+  // -------------------------
+  // Filtering & Sorting Logic
+  // -------------------------
+  
+  // 1. Filter by Search Term
+  let processedBooks = books.filter(b => b.title.toLowerCase().includes(searchTerm.toLowerCase()));
 
-  if (loading) return <div className="py-20 text-center">Đang tải dữ liệu...</div>;
+  // 2. Filter by Category
+  if (activeCategory !== "Tất cả") {
+    processedBooks = processedBooks.filter(b => b.category === activeCategory);
+  }
+
+  // 3. Filter by Availability
+  if (availableOnly) {
+    processedBooks = processedBooks.filter(b => b.available);
+  }
+
+  // 4. Filter by Favorites
+  if (favoritesOnly) {
+    processedBooks = processedBooks.filter(b => favorites.includes(b.id));
+  }
+
+  // 5. Sort Books
+  processedBooks = [...processedBooks].sort((a, b) => {
+    if (sortBy === "price-asc") {
+      return (a.price || 0) - (b.price || 0);
+    }
+    if (sortBy === "price-desc") {
+      return (b.price || 0) - (a.price || 0);
+    }
+    if (sortBy === "rating-desc") {
+      const ratingA = avgRatings[a.id] || 0;
+      const ratingB = avgRatings[b.id] || 0;
+      return ratingB - ratingA;
+    }
+    // "newest": Sort by ID descending (larger ID = newer)
+    return parseInt(b.id) - parseInt(a.id);
+  });
+
+  // 6. Paginate (Load More)
+  const hasMore = processedBooks.length > pageSize;
+  const paginatedBooks = processedBooks.slice(0, pageSize);
+
+  if (loading) return <div className="py-20 text-center text-sm font-semibold">Đang tải dữ liệu...</div>;
 
   return (
     <div className="space-y-6">
+      {/* Header section */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Thư viện sách</h1>
@@ -147,69 +219,174 @@ export default function DashboardPage() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
           <Input 
             placeholder="Tìm kiếm sách..." 
-            className="pl-9"
+            className="pl-9 bg-white dark:bg-zinc-950"
             value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            onChange={(e) => {
+              setSearchTerm(e.target.value);
+              setPageSize(8); // Reset page size on search
+            }}
           />
         </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-        {filteredBooks.map(book => {
-          const isFav = favorites.includes(book.id);
-          return (
-            <Card key={book.id} className="flex flex-col overflow-hidden hover:shadow-md transition-shadow group">
-              <div className="relative aspect-[3/4] overflow-hidden bg-zinc-100 dark:bg-zinc-800">
-                <img 
-                  src={book.coverImage} 
-                  alt={book.title}
-                  onClick={() => openBookDetails(book)}
-                  className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-500 cursor-pointer"
-                />
-                <button 
-                  onClick={() => toggleFavorite(book.id)}
-                  className="absolute top-3 right-3 p-2 rounded-full backdrop-blur-md bg-white/30 dark:bg-black/30 hover:bg-white/50 dark:hover:bg-black/50 transition-colors z-10"
-                >
-                  <Heart className={`w-5 h-5 ${isFav ? 'fill-red-500 text-red-500' : 'text-zinc-900 dark:text-zinc-50'}`} />
-                </button>
-              </div>
-              <div 
-                onClick={() => openBookDetails(book)} 
-                className="p-4 pb-2 flex-1 cursor-pointer"
-              >
-                <div className="flex justify-between items-start gap-2">
-                  <CardTitle className="text-base font-bold line-clamp-1 flex-1 group-hover:text-blue-600 transition-colors">
-                    {book.title}
-                  </CardTitle>
-                  <div className="flex items-center gap-1 text-amber-500 font-bold text-xs shrink-0 bg-amber-50 dark:bg-amber-950/20 px-1.5 py-0.5 rounded-md">
-                    <Star className="w-3.5 h-3.5 fill-current" />
-                    <span>{avgRatings[book.id] ? avgRatings[book.id].toFixed(1) : "0.0"}</span>
-                  </div>
-                </div>
-                <CardDescription className="text-sm">{book.author}</CardDescription>
-                <div className="mt-2 font-semibold text-blue-600 dark:text-blue-400 text-sm">
-                  {book.price ? `${book.price.toLocaleString()} VND` : 'Miễn phí'}
-                </div>
-                <p className="text-xs text-zinc-600 dark:text-zinc-400 line-clamp-2 mt-2">
-                  {book.description}
-                </p>
-              </div>
-              <CardFooter className="p-4 pt-0">
-                <Button 
-                  className="w-full" 
-                  disabled={!book.available}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleBorrow(book.id);
-                  }}
-                >
-                  {book.available ? 'Yêu cầu mượn' : 'Đã hết'}
-                </Button>
-              </CardFooter>
-            </Card>
-          );
-        })}
+      {/* Categories Tabs */}
+      <div className="flex gap-2 overflow-x-auto pb-2 border-b border-zinc-200 dark:border-zinc-800 scrollbar-none select-none">
+        {["Tất cả", "Lập trình", "Kinh tế", "Kỹ năng", "Khác"].map((cat) => (
+          <button
+            key={cat}
+            onClick={() => {
+              setActiveCategory(cat);
+              setPageSize(8); // Reset page size
+            }}
+            className={`px-4 py-1.5 rounded-full text-xs font-semibold transition-all shrink-0 cursor-pointer ${
+              activeCategory === cat
+                ? "bg-blue-600 text-white shadow-md shadow-blue-500/20"
+                : "bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-800/50"
+            }`}
+          >
+            {cat}
+          </button>
+        ))}
       </div>
+
+      {/* Controls Bar */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-4 rounded-2xl select-none">
+        {/* Checkbox filters */}
+        <div className="flex flex-wrap items-center gap-5">
+          <label className="flex items-center gap-2 text-xs font-semibold cursor-pointer">
+            <input 
+              type="checkbox" 
+              checked={availableOnly}
+              onChange={(e) => {
+                setAvailableOnly(e.target.checked);
+                setPageSize(8);
+              }}
+              className="w-4 h-4 text-blue-600 border-zinc-300 dark:border-zinc-700 rounded focus:ring-blue-500 cursor-pointer"
+            />
+            <span className="text-zinc-700 dark:text-zinc-300">Chỉ hiển thị sách sẵn có</span>
+          </label>
+
+          <label className="flex items-center gap-2 text-xs font-semibold cursor-pointer">
+            <input 
+              type="checkbox" 
+              checked={favoritesOnly}
+              onChange={(e) => {
+                setFavoritesOnly(e.target.checked);
+                setPageSize(8);
+              }}
+              className="w-4 h-4 text-blue-600 border-zinc-300 dark:border-zinc-700 rounded focus:ring-blue-500 cursor-pointer"
+            />
+            <span className="text-zinc-700 dark:text-zinc-300">Chỉ xem sách yêu thích</span>
+          </label>
+        </div>
+
+        {/* Sorting Dropdown */}
+        <div className="flex items-center gap-2 self-start md:self-auto">
+          <span className="text-xs font-semibold text-zinc-500 shrink-0">Sắp xếp:</span>
+          <select
+            value={sortBy}
+            onChange={(e) => {
+              setSortBy(e.target.value);
+              setPageSize(8);
+            }}
+            className="bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 text-xs font-semibold px-2.5 py-1.5 rounded-xl outline-none focus:border-blue-500 cursor-pointer"
+          >
+            <option value="newest">Mới nhất</option>
+            <option value="price-asc">Giá: Thấp đến Cao</option>
+            <option value="price-desc">Giá: Cao đến Thấp</option>
+            <option value="rating-desc">Đánh giá cao nhất</option>
+          </select>
+        </div>
+      </div>
+
+      {/* Sách Grid */}
+      {paginatedBooks.length === 0 ? (
+        <div className="text-center py-20 border border-dashed rounded-3xl text-zinc-400 dark:text-zinc-600 text-sm">
+          Không tìm thấy cuốn sách nào phù hợp với bộ lọc hiện tại.
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+          {paginatedBooks.map(book => {
+            const isFav = favorites.includes(book.id);
+            return (
+              <Card key={book.id} className="flex flex-col overflow-hidden hover:shadow-md transition-shadow group">
+                <div className="relative aspect-[3/4] overflow-hidden bg-zinc-100 dark:bg-zinc-800">
+                  <img 
+                    src={book.coverImage} 
+                    alt={book.title}
+                    onClick={() => openBookDetails(book)}
+                    className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-500 cursor-pointer"
+                  />
+                  
+                  {/* Huy hiệu trạng thái mượn của user */}
+                  {activeBorrows[book.id] && (
+                    <div className={`absolute top-3 left-3 px-2 py-1 rounded-md text-[10px] font-bold shadow-md select-none ${
+                      activeBorrows[book.id] === 'APPROVED' 
+                        ? 'bg-emerald-500 text-white shadow-emerald-500/20' 
+                        : 'bg-amber-500 text-white shadow-amber-500/20'
+                    }`}>
+                      {activeBorrows[book.id] === 'APPROVED' ? 'Đang mượn' : 'Chờ duyệt'}
+                    </div>
+                  )}
+
+                  <button 
+                    onClick={() => toggleFavorite(book.id)}
+                    className="absolute top-3 right-3 p-2 rounded-full backdrop-blur-md bg-white/30 dark:bg-black/30 hover:bg-white/50 dark:hover:bg-black/50 transition-colors z-10"
+                  >
+                    <Heart className={`w-5 h-5 ${isFav ? 'fill-red-500 text-red-500' : 'text-zinc-900 dark:text-zinc-50'}`} />
+                  </button>
+                </div>
+                <div 
+                  onClick={() => openBookDetails(book)} 
+                  className="p-4 pb-2 flex-1 cursor-pointer"
+                >
+                  <div className="flex justify-between items-start gap-2">
+                    <CardTitle className="text-base font-bold line-clamp-1 flex-1 group-hover:text-blue-600 transition-colors">
+                      {book.title}
+                    </CardTitle>
+                    <div className="flex items-center gap-1 text-amber-500 font-bold text-xs shrink-0 bg-amber-50 dark:bg-amber-950/20 px-1.5 py-0.5 rounded-md">
+                      <Star className="w-3.5 h-3.5 fill-current" />
+                      <span>{avgRatings[book.id] ? avgRatings[book.id].toFixed(1) : "0.0"}</span>
+                    </div>
+                  </div>
+                  <CardDescription className="text-xs">{book.author}</CardDescription>
+                  <div className="mt-2 font-semibold text-blue-600 dark:text-blue-400 text-sm">
+                    {book.price ? `${book.price.toLocaleString()} VND` : 'Miễn phí'}
+                  </div>
+                  <p className="text-xs text-zinc-600 dark:text-zinc-400 line-clamp-2 mt-2">
+                    {book.description}
+                  </p>
+                </div>
+                <CardFooter className="p-4 pt-0">
+                  <Button 
+                    className="w-full" 
+                    disabled={!book.available}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleBorrow(book.id);
+                    }}
+                  >
+                    {book.available ? 'Yêu cầu mượn' : 'Đã hết'}
+                  </Button>
+                </CardFooter>
+              </Card>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Pagination - Xem thêm */}
+      {hasMore && (
+        <div className="flex justify-center pt-4">
+          <Button 
+            onClick={() => setPageSize(prev => prev + 8)}
+            variant="outline"
+            className="px-8 border-zinc-200 dark:border-zinc-800 font-semibold cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-900"
+          >
+            Xem thêm sách
+          </Button>
+        </div>
+      )}
 
       {/* Book Details & Review Modal */}
       {selectedBook && (
@@ -237,7 +414,7 @@ export default function DashboardPage() {
                   setSelectedBook(null);
                   setReviews([]);
                 }}
-                className="mt-4 text-sm text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-300"
+                className="mt-4 text-sm text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-300 cursor-pointer"
               >
                 Đóng chi tiết
               </button>
@@ -255,7 +432,7 @@ export default function DashboardPage() {
                     setSelectedBook(null);
                     setReviews([]);
                   }}
-                  className="p-1.5 rounded-full hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+                  className="p-1.5 rounded-full hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
                 >
                   <X className="w-5 h-5" />
                 </button>
@@ -321,7 +498,7 @@ export default function DashboardPage() {
                               key={s}
                               type="button"
                               onClick={() => setNewRating(s)}
-                              className="p-0.5 hover:scale-110 transition-transform"
+                              className="p-0.5 hover:scale-110 transition-transform cursor-pointer"
                             >
                               <Star className={`w-5 h-5 ${s <= newRating ? 'fill-current' : 'text-zinc-300 dark:text-zinc-700'}`} />
                             </button>

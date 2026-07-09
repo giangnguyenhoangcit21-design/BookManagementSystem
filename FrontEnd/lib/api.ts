@@ -17,6 +17,7 @@ export interface Book {
   description: string;
   coverImage: string; // Mocked
   available: boolean; // Mocked
+  category?: string;
 }
 
 export interface BorrowRequest {
@@ -153,21 +154,33 @@ export const api = {
       });
       if (!res.ok) throw new Error("Failed to fetch books");
       const data = await res.json();
-      return data.map((b: any) => ({
-        id: b.id.toString(),
-        title: b.title,
-        author: b.author,
-        price: b.price,
-        description: b.description || "",
-        coverImage: 'https://images.unsplash.com/photo-1544947950-fa07a98d237f?q=80&w=600&auto=format&fit=crop', // Mock
-        available: true // Mock
-      }));
+      return data.map((b: any) => {
+        const titleLower = b.title.toLowerCase();
+        let cat = "Khác";
+        if (titleLower.includes("lập trình") || titleLower.includes("spring") || titleLower.includes("code") || titleLower.includes("java")) {
+          cat = "Lập trình";
+        } else if (titleLower.includes("kinh tế") || titleLower.includes("tài chính") || titleLower.includes("khởi nghiệp") || titleLower.includes("startup")) {
+          cat = "Kinh tế";
+        } else if (titleLower.includes("kỹ năng") || titleLower.includes("sống") || titleLower.includes("đắc nhân tâm")) {
+          cat = "Kỹ năng";
+        }
+        return {
+          id: b.id.toString(),
+          title: b.title,
+          author: b.author,
+          price: b.price,
+          description: b.description || "",
+          coverImage: 'https://images.unsplash.com/photo-1544947950-fa07a98d237f?q=80&w=600&auto=format&fit=crop', // Mock
+          available: b.available !== undefined ? b.available : true, // Mock/Map
+          category: cat
+        };
+      });
     } catch (err: any) {
       if (err instanceof TypeError || err.message === "Failed to fetch") {
         console.warn("Backend offline. Returning mock books.");
         return [
-          { id: "1", title: "Lập trình Spring Boot Căn Bản", author: "Nguyễn Văn A", price: 150000, description: "Sách hướng dẫn làm RESTful API cực dễ hiểu.", coverImage: 'https://images.unsplash.com/photo-1544947950-fa07a98d237f?q=80&w=600&auto=format&fit=crop', available: true },
-          { id: "2", title: "Clean Code (Mã Sạch)", author: "Robert C. Martin", price: 250000, description: "Sách gối đầu giường của mọi lập trình viên.", coverImage: 'https://images.unsplash.com/photo-1531988042231-d39a9cc12a9a?q=80&w=600&auto=format&fit=crop', available: true }
+          { id: "1", title: "Lập trình Spring Boot Căn Bản", author: "Nguyễn Văn A", price: 150000, description: "Sách hướng dẫn làm RESTful API cực dễ hiểu.", coverImage: 'https://images.unsplash.com/photo-1544947950-fa07a98d237f?q=80&w=600&auto=format&fit=crop', available: true, category: "Lập trình" },
+          { id: "2", title: "Clean Code (Mã Sạch)", author: "Robert C. Martin", price: 250000, description: "Sách gối đầu giường của mọi lập trình viên.", coverImage: 'https://images.unsplash.com/photo-1531988042231-d39a9cc12a9a?q=80&w=600&auto=format&fit=crop', available: true, category: "Lập trình" }
         ];
       }
       throw err;
