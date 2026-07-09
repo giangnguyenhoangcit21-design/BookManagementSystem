@@ -39,4 +39,15 @@ public class ReviewController {
         Double avgRating = reviewService.getAverageRatingByBookId(bookId);
         return ResponseEntity.ok(avgRating);
     }
+
+    @GetMapping("/all")
+    public ResponseEntity<List<ReviewResponse>> getAllReviews() {
+        return ResponseEntity.ok(reviewService.getAllReviews());
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteReview(@PathVariable Long id) {
+        reviewService.deleteReview(id);
+        return ResponseEntity.ok().build();
+    }
 }

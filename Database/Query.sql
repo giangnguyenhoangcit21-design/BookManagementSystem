@@ -30,8 +30,9 @@ GO
 -- CHÈN DỮ LIỆU MẪU
 INSERT INTO users (username, password, role)
 VALUES 
-('admin_thay_giao', '123456', 'ROLE_ADMIN'),
-('dev_sinh_vien', '123456', 'ROLE_USER');
+('admin_quan_ly', '$2a$10$Y1/1sIeN4WjH72mB6/O4hO.iW2T3Z1H6sWJ4v5g2L7sLh8K6PzR2u', 'ROLE_ADMIN'),
+('admin_thay_giao', '$2a$10$Y1/1sIeN4WjH72mB6/O4hO.iW2T3Z1H6sWJ4v5g2L7sLh8K6PzR2u', 'ROLE_ADMIN'),
+('dev_sinh_vien', '$2a$10$Y1/1sIeN4WjH72mB6/O4hO.iW2T3Z1H6sWJ4v5g2L7sLh8K6PzR2u', 'ROLE_USER');
 GO
 
 -- Chèn sách mẫu

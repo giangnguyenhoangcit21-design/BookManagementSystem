@@ -64,4 +64,20 @@ public class ReviewServiceImpl implements ReviewService {
         Double avg = reviewRepository.getAverageRatingByBookId(bookId);
         return avg != null ? Math.round(avg * 10.0) / 10.0 : 0.0;
     }
+
+    @Override
+    public List<ReviewResponse> getAllReviews() {
+        return reviewRepository.findAll().stream()
+                .map(reviewMapper::toResponse)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional
+    public void deleteReview(Long id) {
+        if (!reviewRepository.existsById(id)) {
+            throw new RuntimeException("Review not found");
+        }
+        reviewRepository.deleteById(id);
+    }
 }
