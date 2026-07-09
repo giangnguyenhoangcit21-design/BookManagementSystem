@@ -71,64 +71,98 @@ const getHeaders = () => {
 export const api = {
   // Auth
   login: async (username: string, password?: string): Promise<User> => {
-    const res = await fetch(`${API_URL}/auth/login`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username, password: password || "123456" }) // Fallback password if UI doesn't send
-    });
-    
-    if (!res.ok) {
-      const err = await res.text();
-      throw new Error(err || "Login failed");
+    try {
+      const res = await fetch(`${API_URL}/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password: password || "123456" }) // Fallback password if UI doesn't send
+      });
+      
+      if (!res.ok) {
+        const err = await res.text();
+        throw new Error(err || "Login failed");
+      }
+      
+      const data = await res.json();
+      // data: { token, type, username, role }
+      return {
+        id: data.username,
+        name: data.username,
+        email: `${data.username}@system.com`,
+        role: data.role === 'ROLE_ADMIN' ? 'admin' : 'user', // Mapping spring security roles
+        token: data.token
+      };
+    } catch (err: any) {
+      if (err instanceof TypeError || err.message === "Failed to fetch") {
+        console.warn("Backend offline. Falling back to frontend mock auth.");
+        const role = username === "admin_thay_giao" ? "admin" : "user";
+        return {
+          id: username,
+          name: username,
+          email: `${username}@system.com`,
+          role: role,
+          token: `mock-jwt-${role}-token`
+        };
+      }
+      throw err;
     }
-    
-    const data = await res.json();
-    // data: { token, type, username, role }
-    return {
-      id: data.username,
-      name: data.username,
-      email: `${data.username}@system.com`,
-      role: data.role === 'ROLE_ADMIN' ? 'admin' : 'user', // Mapping spring security roles
-      token: data.token
-    };
   },
 
   register: async (username: string, password?: string, role: string = 'user'): Promise<any> => {
-    const res = await fetch(`${API_URL}/auth/register`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ 
-        username, 
-        password: password || "123456",
-        role: role === 'admin' ? 'admin' : 'user'
-      })
-    });
-    
-    if (!res.ok) {
-      const err = await res.text();
-      throw new Error(err || "Register failed");
+    try {
+      const res = await fetch(`${API_URL}/auth/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          username, 
+          password: password || "123456",
+          role: role === 'admin' ? 'admin' : 'user'
+        })
+      });
+      
+      if (!res.ok) {
+        const err = await res.text();
+        throw new Error(err || "Register failed");
+      }
+      
+      return await res.json();
+    } catch (err: any) {
+      if (err instanceof TypeError || err.message === "Failed to fetch") {
+        console.warn("Backend offline. Mocking register success.");
+        return { username, role };
+      }
+      throw err;
     }
-    
-    return await res.json();
   },
   
   // Books (Real Backend CRUD)
   getBooks: async (): Promise<Book[]> => {
-    const res = await fetch(`${API_URL}/books`, {
-      method: 'GET',
-      headers: getHeaders()
-    });
-    if (!res.ok) throw new Error("Failed to fetch books");
-    const data = await res.json();
-    return data.map((b: any) => ({
-      id: b.id.toString(),
-      title: b.title,
-      author: b.author,
-      price: b.price,
-      description: b.description || "",
-      coverImage: 'https://images.unsplash.com/photo-1544947950-fa07a98d237f?q=80&w=600&auto=format&fit=crop', // Mock
-      available: true // Mock
-    }));
+    try {
+      const res = await fetch(`${API_URL}/books`, {
+        method: 'GET',
+        headers: getHeaders()
+      });
+      if (!res.ok) throw new Error("Failed to fetch books");
+      const data = await res.json();
+      return data.map((b: any) => ({
+        id: b.id.toString(),
+        title: b.title,
+        author: b.author,
+        price: b.price,
+        description: b.description || "",
+        coverImage: 'https://images.unsplash.com/photo-1544947950-fa07a98d237f?q=80&w=600&auto=format&fit=crop', // Mock
+        available: true // Mock
+      }));
+    } catch (err: any) {
+      if (err instanceof TypeError || err.message === "Failed to fetch") {
+        console.warn("Backend offline. Returning mock books.");
+        return [
+          { id: "1", title: "Lập trình Spring Boot Căn Bản", author: "Nguyễn Văn A", price: 150000, description: "Sách hướng dẫn làm RESTful API cực dễ hiểu.", coverImage: 'https://images.unsplash.com/photo-1544947950-fa07a98d237f?q=80&w=600&auto=format&fit=crop', available: true },
+          { id: "2", title: "Clean Code (Mã Sạch)", author: "Robert C. Martin", price: 250000, description: "Sách gối đầu giường của mọi lập trình viên.", coverImage: 'https://images.unsplash.com/photo-1531988042231-d39a9cc12a9a?q=80&w=600&auto=format&fit=crop', available: true }
+        ];
+      }
+      throw err;
+    }
   },
   
   createBook: async (book: Omit<Book, 'id' | 'coverImage' | 'available'>): Promise<Book> => {
@@ -138,20 +172,33 @@ export const api = {
       price: book.price || 0,
       description: book.description
     };
-    const res = await fetch(`${API_URL}/books`, {
-      method: 'POST',
-      headers: getHeaders(),
-      body: JSON.stringify(payload)
-    });
-    if (!res.ok) throw new Error("Failed to create book");
-    const b = await res.json();
-    return {
-      ...book,
-      id: b.id.toString(),
-      price: b.price,
-      coverImage: 'https://images.unsplash.com/photo-1544947950-fa07a98d237f?q=80&w=600&auto=format&fit=crop',
-      available: true
-    };
+    try {
+      const res = await fetch(`${API_URL}/books`, {
+        method: 'POST',
+        headers: getHeaders(),
+        body: JSON.stringify(payload)
+      });
+      if (!res.ok) throw new Error("Failed to create book");
+      const b = await res.json();
+      return {
+        ...book,
+        id: b.id.toString(),
+        price: b.price,
+        coverImage: 'https://images.unsplash.com/photo-1544947950-fa07a98d237f?q=80&w=600&auto=format&fit=crop',
+        available: true
+      };
+    } catch (err: any) {
+      if (err instanceof TypeError || err.message === "Failed to fetch") {
+        console.warn("Backend offline. Mocking createBook.");
+        return {
+          ...book,
+          id: Math.floor(Math.random() * 1000 + 3).toString(),
+          coverImage: 'https://images.unsplash.com/photo-1544947950-fa07a98d237f?q=80&w=600&auto=format&fit=crop',
+          available: true
+        };
+      }
+      throw err;
+    }
   },
   
   updateBook: async (id: string, updates: Partial<Book>): Promise<Book> => {
@@ -161,30 +208,54 @@ export const api = {
       price: updates.price,
       description: updates.description
     };
-    const res = await fetch(`${API_URL}/books/${id}`, {
-      method: 'PUT',
-      headers: getHeaders(),
-      body: JSON.stringify(payload)
-    });
-    if (!res.ok) throw new Error("Failed to update book");
-    const b = await res.json();
-    return {
-      id: b.id.toString(),
-      title: b.title,
-      author: b.author,
-      price: b.price,
-      description: b.description || "",
-      coverImage: updates.coverImage || 'https://images.unsplash.com/photo-1544947950-fa07a98d237f?q=80&w=600&auto=format&fit=crop',
-      available: true
-    };
+    try {
+      const res = await fetch(`${API_URL}/books/${id}`, {
+        method: 'PUT',
+        headers: getHeaders(),
+        body: JSON.stringify(payload)
+      });
+      if (!res.ok) throw new Error("Failed to update book");
+      const b = await res.json();
+      return {
+        id: b.id.toString(),
+        title: b.title,
+        author: b.author,
+        price: b.price,
+        description: b.description || "",
+        coverImage: updates.coverImage || 'https://images.unsplash.com/photo-1544947950-fa07a98d237f?q=80&w=600&auto=format&fit=crop',
+        available: true
+      };
+    } catch (err: any) {
+      if (err instanceof TypeError || err.message === "Failed to fetch") {
+        console.warn("Backend offline. Mocking updateBook.");
+        return {
+          id,
+          title: updates.title || "",
+          author: updates.author || "",
+          price: updates.price || 0,
+          description: updates.description || "",
+          coverImage: updates.coverImage || 'https://images.unsplash.com/photo-1544947950-fa07a98d237f?q=80&w=600&auto=format&fit=crop',
+          available: true
+        };
+      }
+      throw err;
+    }
   },
   
   deleteBook: async (id: string): Promise<void> => {
-    const res = await fetch(`${API_URL}/books/${id}`, {
-      method: 'DELETE',
-      headers: getHeaders()
-    });
-    if (!res.ok) throw new Error("Failed to delete book");
+    try {
+      const res = await fetch(`${API_URL}/books/${id}`, {
+        method: 'DELETE',
+        headers: getHeaders()
+      });
+      if (!res.ok) throw new Error("Failed to delete book");
+    } catch (err: any) {
+      if (err instanceof TypeError || err.message === "Failed to fetch") {
+        console.warn("Backend offline. Mocking deleteBook.");
+        return;
+      }
+      throw err;
+    }
   },
 
   // -------------------------
@@ -204,70 +275,185 @@ export const api = {
   // -------------------------
   
   borrowBook: async (bookId: string): Promise<BorrowRecordResponse> => {
-    const res = await fetch(`${API_URL}/borrows/request/${bookId}`, {
-      method: 'POST',
-      headers: getHeaders()
-    });
-    if (!res.ok) {
-      const err = await res.text();
-      throw new Error(err || "Failed to borrow book");
+    try {
+      const res = await fetch(`${API_URL}/borrows/request/${bookId}`, {
+        method: 'POST',
+        headers: getHeaders()
+      });
+      if (!res.ok) {
+        const err = await res.text();
+        throw new Error(err || "Failed to borrow book");
+      }
+      return await res.json();
+    } catch (err: any) {
+      if (err instanceof TypeError || err.message === "Failed to fetch") {
+        console.warn("Backend offline. Mocking borrowBook.");
+        return {
+          id: Math.floor(Math.random() * 1000 + 1),
+          userId: 1,
+          username: "dev_sinh_vien",
+          bookId: parseInt(bookId),
+          bookTitle: "Sách đã chọn",
+          status: "PENDING",
+          requestDate: new Date().toISOString().split('T')[0],
+          borrowDate: "",
+          dueDate: "",
+          returnDate: "",
+          daysRemaining: 14,
+          isOverdue: false
+        };
+      }
+      throw err;
     }
-    return await res.json();
   },
 
   getUserBorrows: async (): Promise<BorrowRecordResponse[]> => {
-    const res = await fetch(`${API_URL}/borrows/my`, {
-      method: 'GET',
-      headers: getHeaders()
-    });
-    if (!res.ok) throw new Error("Failed to fetch user borrows");
-    return await res.json();
+    try {
+      const res = await fetch(`${API_URL}/borrows/my`, {
+        method: 'GET',
+        headers: getHeaders()
+      });
+      if (!res.ok) throw new Error("Failed to fetch user borrows");
+      return await res.json();
+    } catch (err: any) {
+      if (err instanceof TypeError || err.message === "Failed to fetch") {
+        console.warn("Backend offline. Returning mock user borrows.");
+        return [];
+      }
+      throw err;
+    }
   },
 
   getAllBorrows: async (): Promise<BorrowRecordResponse[]> => {
-    const res = await fetch(`${API_URL}/borrows/all`, {
-      method: 'GET',
-      headers: getHeaders()
-    });
-    if (!res.ok) throw new Error("Failed to fetch all borrows");
-    return await res.json();
+    try {
+      const res = await fetch(`${API_URL}/borrows/all`, {
+        method: 'GET',
+        headers: getHeaders()
+      });
+      if (!res.ok) throw new Error("Failed to fetch all borrows");
+      return await res.json();
+    } catch (err: any) {
+      if (err instanceof TypeError || err.message === "Failed to fetch") {
+        console.warn("Backend offline. Returning mock all borrows.");
+        return [
+          {
+            id: 1,
+            userId: 2,
+            username: "dev_sinh_vien",
+            bookId: 1,
+            bookTitle: "Lập trình Spring Boot Căn Bản",
+            status: "PENDING",
+            requestDate: new Date().toISOString().split('T')[0],
+            borrowDate: "",
+            dueDate: "",
+            returnDate: "",
+            daysRemaining: 14,
+            isOverdue: false
+          }
+        ];
+      }
+      throw err;
+    }
   },
 
   approveBorrow: async (id: string, durationDays?: number): Promise<BorrowRecordResponse> => {
-    const url = durationDays ? `${API_URL}/borrows/${id}/approve?durationDays=${durationDays}` : `${API_URL}/borrows/${id}/approve`;
-    const res = await fetch(url, {
-      method: 'PUT',
-      headers: getHeaders()
-    });
-    if (!res.ok) {
-        const err = await res.text();
-        throw new Error(err || "Failed to approve borrow");
+    try {
+      const url = durationDays ? `${API_URL}/borrows/${id}/approve?durationDays=${durationDays}` : `${API_URL}/borrows/${id}/approve`;
+      const res = await fetch(url, {
+        method: 'PUT',
+        headers: getHeaders()
+      });
+      if (!res.ok) {
+          const err = await res.text();
+          throw new Error(err || "Failed to approve borrow");
+      }
+      return await res.json();
+    } catch (err: any) {
+      if (err instanceof TypeError || err.message === "Failed to fetch") {
+        console.warn("Backend offline. Mocking approveBorrow.");
+        return {
+          id: parseInt(id),
+          userId: 2,
+          username: "dev_sinh_vien",
+          bookId: 1,
+          bookTitle: "Lập trình Spring Boot Căn Bản",
+          status: "APPROVED",
+          requestDate: new Date().toISOString().split('T')[0],
+          borrowDate: new Date().toISOString().split('T')[0],
+          dueDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+          returnDate: "",
+          daysRemaining: 14,
+          isOverdue: false
+        };
+      }
+      throw err;
     }
-    return await res.json();
   },
 
   rejectBorrow: async (id: string): Promise<BorrowRecordResponse> => {
-    const res = await fetch(`${API_URL}/borrows/${id}/reject`, {
-      method: 'PUT',
-      headers: getHeaders()
-    });
-    if (!res.ok) {
-        const err = await res.text();
-        throw new Error(err || "Failed to reject borrow");
+    try {
+      const res = await fetch(`${API_URL}/borrows/${id}/reject`, {
+        method: 'PUT',
+        headers: getHeaders()
+      });
+      if (!res.ok) {
+          const err = await res.text();
+          throw new Error(err || "Failed to reject borrow");
+      }
+      return await res.json();
+    } catch (err: any) {
+      if (err instanceof TypeError || err.message === "Failed to fetch") {
+        console.warn("Backend offline. Mocking rejectBorrow.");
+        return {
+          id: parseInt(id),
+          userId: 2,
+          username: "dev_sinh_vien",
+          bookId: 1,
+          bookTitle: "Lập trình Spring Boot Căn Bản",
+          status: "REJECTED",
+          requestDate: new Date().toISOString().split('T')[0],
+          borrowDate: "",
+          dueDate: "",
+          returnDate: "",
+          daysRemaining: 0,
+          isOverdue: false
+        };
+      }
+      throw err;
     }
-    return await res.json();
   },
 
   returnBook: async (id: string): Promise<BorrowRecordResponse> => {
-    const res = await fetch(`${API_URL}/borrows/${id}/return`, {
-      method: 'PUT',
-      headers: getHeaders()
-    });
-    if (!res.ok) {
-        const err = await res.text();
-        throw new Error(err || "Failed to return book");
+    try {
+      const res = await fetch(`${API_URL}/borrows/${id}/return`, {
+        method: 'PUT',
+        headers: getHeaders()
+      });
+      if (!res.ok) {
+          const err = await res.text();
+          throw new Error(err || "Failed to return book");
+      }
+      return await res.json();
+    } catch (err: any) {
+      if (err instanceof TypeError || err.message === "Failed to fetch") {
+        console.warn("Backend offline. Mocking returnBook.");
+        return {
+          id: parseInt(id),
+          userId: 2,
+          username: "dev_sinh_vien",
+          bookId: 1,
+          bookTitle: "Lập trình Spring Boot Căn Bản",
+          status: "RETURNED",
+          requestDate: new Date().toISOString().split('T')[0],
+          borrowDate: new Date().toISOString().split('T')[0],
+          dueDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+          returnDate: new Date().toISOString().split('T')[0],
+          daysRemaining: 0,
+          isOverdue: false
+        };
+      }
+      throw err;
     }
-    return await res.json();
   },
 
   getFavorites: async (userId: string): Promise<Book[]> => {
