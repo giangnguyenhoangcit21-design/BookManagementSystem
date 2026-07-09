@@ -66,22 +66,28 @@ Client (FrontEnd Next.js)
   * `AuthController.java`: Xử lý đăng ký (`/register`) và đăng nhập (`/login`).
   * `BookController.java`: Cung cấp các API CRUD sách (`/api/books`).
   * `BorrowController.java`: Quản lý yêu cầu mượn/trả sách, duyệt/từ chối yêu cầu của người dùng (`/api/borrows`).
+  * `ReviewController.java`: Quản lý tác vụ đánh giá, bình luận sách (`/api/reviews`).
 * **`service/`**: Xử lý logic nghiệp vụ và ràng buộc hệ thống.
   * `BookService.java` & `impl/BookServiceImpl.java`: Logic kiểm tra giá sách (phải >= 0), kiểm tra quyền sở hữu (User chỉ sửa được sách của mình, Admin sửa được mọi sách).
   * `AuthService.java` & `impl/AuthServiceImpl.java`: Logic mã hóa BCrypt, đăng ký người dùng mới và tạo xác thực.
   * `BorrowService.java` & `impl/BorrowServiceImpl.java`: Logic nghiệp vụ xử lý quy trình mượn sách (kiểm tra trùng lặp, tính số ngày còn lại, tính ngày hết hạn).
+  * `ReviewService.java` & `impl/ReviewServiceImpl.java`: Logic nghiệp vụ xử lý đánh giá sách, kiểm tra điều kiện đầu vào.
 * **`repository/`**: Tầng giao tiếp với database.
   * `UserRepository.java`: Tìm kiếm User theo Username.
   * `BookRepository.java`: Thực hiện các truy vấn cơ bản về Sách.
   * `BorrowRecordRepository.java`: Thực hiện truy vấn thông tin mượn trả, kiểm tra sách đang mượn.
+  * `ReviewRepository.java`: Thực hiện truy vấn bình luận, tính điểm trung bình (sử dụng JPQL).
 * **`model/`**: Định nghĩa cấu trúc dữ liệu.
   * **`entity/`**: Ánh xạ trực tiếp thành các bảng trong SQL Server.
     * `User.java`: Mapped với bảng `users` (id, username, password, role).
     * `Book.java`: Mapped với bảng `books` (id, title, author, price, description, created_by).
     * `BorrowRecord.java`: Mapped với bảng `borrow_records` (id, user_id, book_id, status, request_date, borrow_date, due_date, return_date).
+    * `Review.java`: Mapped với bảng `reviews` (id, user_id, book_id, rating, comment, created_at).
   * **`dto/`**: Các đối tượng truyền nhận dữ liệu qua API để ẩn các thông tin nhạy cảm (như mật khẩu).
-    * `request/`: `BookRequest`, `UserLoginRequest`, `UserRegisterRequest`.
-    * `response/`: `BookResponse`, `UserResponse`, `JwtResponse`, `BorrowRecordResponse`.
+    * `request/`: `BookRequest`, `UserLoginRequest`, `UserRegisterRequest`, `ReviewCreateRequest`.
+    * `response/`: `BookResponse`, `UserResponse`, `JwtResponse`, `BorrowRecordResponse`, `ReviewResponse`.
+  * **`mapper/`**:
+    * `ReviewMapper.java`: Interface MapStruct để map dữ liệu giữa Entity và DTO.
 * **`security/`**: Chứa toàn bộ cấu hình bảo mật JWT.
   * `WebSecurityConfig.java`: Thiết lập phân quyền các URL, tắt CSRF và cấu hình CORS.
   * `JwtTokenProvider.java`: Tạo sinh token JWT và phân tích giải mã token.
@@ -150,3 +156,7 @@ Client (FrontEnd Next.js)
    * Sử dụng API `GET /api/borrows/all` để lấy toàn bộ danh sách phiếu mượn.
    * Gửi request `PUT /api/borrows/{id}/approve` để duyệt yêu cầu mượn của user (hạn trả mặc định 14 ngày được tự động áp dụng).
    * Gửi request `PUT /api/borrows/{id}/return` khi user hoàn thành việc trả sách.
+6. **Đánh giá và Bình luận Sách (Book Review)**:
+   * **Thêm đánh giá**: Người dùng đã đăng nhập có thể gửi đánh giá thông qua `POST /api/reviews` với Body JSON (chứa `bookId`, `rating` từ 1-5, và `comment`).
+   * **Xem đánh giá**: Bất kỳ ai cũng có thể truy cập `GET /api/reviews/book/{bookId}` để xem danh sách bình luận mới nhất của một cuốn sách.
+   * **Xem điểm trung bình**: Lấy điểm đánh giá trung bình của sách bằng API `GET /api/reviews/book/{bookId}/average`.

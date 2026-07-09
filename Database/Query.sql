@@ -57,3 +57,18 @@ CREATE TABLE borrow_records (
     CONSTRAINT FK_Borrow_User FOREIGN KEY (user_id) REFERENCES users(id),
     CONSTRAINT FK_Borrow_Book FOREIGN KEY (book_id) REFERENCES books(id)
 );
+GO
+
+-- 2. Bảng reviews dành cho tính năng đánh giá sách
+CREATE TABLE reviews (
+    id BIGINT IDENTITY(1,1) PRIMARY KEY,
+    user_id BIGINT NOT NULL,
+    book_id BIGINT NOT NULL,
+    rating INT NOT NULL CHECK (rating >= 1 AND rating <= 5),
+    comment NVARCHAR(MAX),
+    created_at DATETIME DEFAULT GETDATE(),
+    
+    CONSTRAINT FK_Reviews_User FOREIGN KEY (user_id) REFERENCES users(id),
+    CONSTRAINT FK_Reviews_Book FOREIGN KEY (book_id) REFERENCES books(id)
+);
+GO

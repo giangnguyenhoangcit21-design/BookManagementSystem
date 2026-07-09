@@ -1,4 +1,0 @@
--------------------------------------------------------------------------------
-Test set: com.team.bookmanagement.controller.BookControllerIntegrationTests
--------------------------------------------------------------------------------
-Tests run: 9, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 2.279 s -- in com.team.bookmanagement.controller.BookControllerIntegrationTests
