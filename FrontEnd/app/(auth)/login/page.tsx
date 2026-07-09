@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import Link from "next/link";
-import { BookOpen } from "lucide-react";
+import { BookOpen, Shield, User } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 
 export default function LoginPage() {
@@ -21,6 +21,20 @@ export default function LoginPage() {
     setLoading(true);
     try {
       await login(username, password);
+    } catch (err: any) {
+      setError(err.message || "Login failed");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleQuickLogin = async (usr: string, pwd: string) => {
+    setUsername(usr);
+    setPassword(pwd);
+    setError("");
+    setLoading(true);
+    try {
+      await login(usr, pwd);
     } catch (err: any) {
       setError(err.message || "Login failed");
     } finally {
@@ -75,16 +89,30 @@ export default function LoginPage() {
               <div className="w-full border-t border-zinc-200 dark:border-zinc-800"></div>
             </div>
             <div className="relative flex justify-center text-sm">
-              <span className="px-2 bg-white dark:bg-zinc-950 text-zinc-500">Hoặc tiếp tục với</span>
+              <span className="px-2 bg-white dark:bg-zinc-950 text-zinc-500">Đăng nhập nhanh</span>
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
-            <Button variant="outline" className="w-full">
-              Facebook
+            <Button
+              variant="outline"
+              type="button"
+              className="w-full flex items-center justify-center gap-2 border-red-200 dark:border-red-900/50 hover:bg-red-50 dark:hover:bg-red-950/20 text-red-700 dark:text-red-400"
+              onClick={() => handleQuickLogin("admin_thay_giao", "123456")}
+              disabled={loading}
+            >
+              <Shield className="w-4.5 h-4.5" />
+              <span>Admin</span>
             </Button>
-            <Button variant="outline" className="w-full">
-              Gmail
+            <Button
+              variant="outline"
+              type="button"
+              className="w-full flex items-center justify-center gap-2 border-blue-200 dark:border-blue-900/50 hover:bg-blue-50 dark:hover:bg-blue-950/20 text-blue-700 dark:text-blue-400"
+              onClick={() => handleQuickLogin("dev_sinh_vien", "123456")}
+              disabled={loading}
+            >
+              <User className="w-4.5 h-4.5" />
+              <span>Sinh viên</span>
             </Button>
           </div>
         </CardContent>
